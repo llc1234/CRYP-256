@@ -56,7 +56,7 @@ def decrypt(encrypted_text):
 
 
 
-text = "0000000000000000000000000000000000000000000000000"
+text = "hello"
 
 key = "P9HebdWQwqzgT4YUDpQkd6T6dd8JKNCJD2DSdklSnldDDnekcnVLFHBERBX"
 en = encrypt(text)
