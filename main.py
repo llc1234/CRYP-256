@@ -1,5 +1,6 @@
 # CRYP-256
 
+import os
 import sys
 import random
 
@@ -8,7 +9,6 @@ class CRYP256:
     def __init__(self):
         self.key = ""
         self.filename = ""
-        self.text = ""
 
     def encrypt(self, message):
         encrypted_message = bytearray()
@@ -58,21 +58,25 @@ class CRYP256:
             encrypted_message = self.encrypt(encrypted_message)
         r1.close()
 
-        r2 = open(self.filename + ".CRYP256", "wb")
+        r2 = open(self.filename, "wb")
         r2.write(encrypted_message)
         r2.close()
+
+        os.rename(self.filename, self.filename + ".CRYP256")
 
     def DecryptFile(self):
         r1 = open(self.filename, "rb")
-        encrypted_message = self.decrypt(r1.read())
+        decrypt_message = self.decrypt(r1.read())
 
         for i in range(9):
-            encrypted_message = self.decrypt(encrypted_message)
+            decrypt_message = self.decrypt(decrypt_message)
         r1.close()
 
-        r2 = open(self.filename[0:self.filename.find(".CRYP256")], "wb")
-        r2.write(encrypted_message)
+        r2 = open(self.filename, "wb")
+        r2.write(decrypt_message)
         r2.close()
+
+        os.rename(self.filename, self.filename[0:self.filename.find(".CRYP256")])
 
     def ArgsStart(self):
         self.filename = sys.argv[1]
