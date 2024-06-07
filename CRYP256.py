@@ -9,6 +9,7 @@ import sys
 class CRYP256:
     def __init__(self):
         self.key = ""
+        self.keys = []
         self.switch = [
             b'\x38', b'\x39', b'\x3a', b'\x3b', b'\x0c', b'\x0d', b'\x0e', b'\x0f',
             b'\x3c', b'\x3d', b'\x3e', b'\x3f', b'\x28', b'\x29', b'\x2a', b'\x2b', 
@@ -43,6 +44,25 @@ class CRYP256:
             b'\x40', b'\x41', b'\x42', b'\x43', b'\x44', b'\x45', b'\x46', b'\x47',
             b'\xa0', b'\xa1', b'\xa2', b'\xa3', b'\xa4', b'\xa5', b'\xa6', b'\xa7'
         ]
+
+    def ShuffleTheKey(self, s):
+        n = len(s)
+        result = list(s)
+        
+        shuffle_value = sum(ord(char) for char in s) % n
+        
+        for i in range(n):
+            swap_index = (i * shuffle_value) % n
+            result[i], result[swap_index] = result[swap_index], result[i]
+        
+        return ''.join(result)
+    
+    def MakeKeys(self):
+        k = self.key
+
+        for i in range(6):
+            k = self.ShuffleTheKey(k)
+            self.keys.append(k)
 
     def SwitchTheSwitch(self):
         key_ints = [int(self.key[i:i+2], 16) for i in range(0, len(self.key), 2)]
@@ -89,13 +109,26 @@ class CRYP256:
     def EncryptFile(self):
         r1 = open(self.filename, "rb")
 
+        self.key = self.keys[0]
         enc = self.XORGate(r1.read())
-
-        for i in range(9):
-            enc = self.switch_bytes(enc)
-            enc = self.XORGate(enc)
-
         enc = self.switch_bytes(enc)
+
+        self.key = self.keys[1]
+        enc = self.XORGate(enc)
+        enc = self.switch_bytes(enc)
+
+        self.key = self.keys[2]
+        enc = self.XORGate(enc)
+        enc = self.switch_bytes(enc)
+
+        self.key = self.keys[3]
+        enc = self.XORGate(enc)
+        enc = self.switch_bytes(enc)
+
+        self.key = self.keys[4]
+        enc = self.XORGate(enc)
+        enc = self.switch_bytes(enc)
+
         r1.close()
 
         r2 = open(self.filename, "wb")
@@ -107,13 +140,26 @@ class CRYP256:
     def DecryptFile(self):
         r1 = open(self.filename, "rb")
 
+        self.key = self.keys[4]
         enc = self.reverse_switch_bytes(r1.read())
-
-        for i in range(9):
-            enc = self.XORGate(enc)
-            enc = self.reverse_switch_bytes(enc)
-
         enc = self.XORGate(enc)
+
+        self.key = self.keys[3]
+        enc = self.reverse_switch_bytes(enc)
+        enc = self.XORGate(enc)
+
+        self.key = self.keys[2]
+        enc = self.reverse_switch_bytes(enc)
+        enc = self.XORGate(enc)
+
+        self.key = self.keys[1]
+        enc = self.reverse_switch_bytes(enc)
+        enc = self.XORGate(enc)
+
+        self.key = self.keys[0]
+        enc = self.reverse_switch_bytes(enc)
+        enc = self.XORGate(enc)
+
         r1.close()
 
         r2 = open(self.filename, "wb")
@@ -126,6 +172,7 @@ class CRYP256:
         self.filename = sys.argv[1]
         self.key = sys.argv[2]
         self.switch = self.SwitchTheSwitch()
+        self.MakeKeys()
 
         if self.filename.endswith(".CRYP256"):
             self.DecryptFile()
