@@ -3,7 +3,7 @@ import sys
 # import random
 
 
-class CRYP256:
+class XORGate:
     def __init__(self):
         self.key = ""
 
@@ -35,4 +35,4 @@ class CRYP256:
 
 
 
-CRYP256().args_start()
+XORGate().args_start()
