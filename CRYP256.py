@@ -5,6 +5,7 @@
 
 import os
 import sys
+import hashlib
 
 class CRYP256:
     def __init__(self):
@@ -44,22 +45,14 @@ class CRYP256:
             b'\x40', b'\x41', b'\x42', b'\x43', b'\x44', b'\x45', b'\x46', b'\x47',
             b'\xa0', b'\xa1', b'\xa2', b'\xa3', b'\xa4', b'\xa5', b'\xa6', b'\xa7'
         ]
-
-    def shuffle_the_key(self, s):
-        n = len(s)
-        result = list(s)
-        shuffle_value = sum(ord(char) for char in s) % n
-
-        for i in range(n):
-            swap_index = (i * shuffle_value) % n
-            result[i], result[swap_index] = result[swap_index], result[i]
-
-        return ''.join(result)
+    
+    def sha256(self, text):
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     def make_keys(self):
         k = self.key
-        for i in range(6):
-            k = self.shuffle_the_key(k)
+        for i in range(5):
+            k = self.sha256(k)
             self.keys.append(k)
 
     def switch_the_switch(self):
