@@ -2,9 +2,9 @@
 
 # python main.py secret_file.txt 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
 
+
 import os
 import sys
-
 
 class CRYP256:
     def __init__(self):
@@ -45,28 +45,25 @@ class CRYP256:
             b'\xa0', b'\xa1', b'\xa2', b'\xa3', b'\xa4', b'\xa5', b'\xa6', b'\xa7'
         ]
 
-    def ShuffleTheKey(self, s):
+    def shuffle_the_key(self, s):
         n = len(s)
         result = list(s)
-        
         shuffle_value = sum(ord(char) for char in s) % n
-        
+
         for i in range(n):
             swap_index = (i * shuffle_value) % n
             result[i], result[swap_index] = result[swap_index], result[i]
-        
-        return ''.join(result)
-    
-    def MakeKeys(self):
-        k = self.key
 
+        return ''.join(result)
+
+    def make_keys(self):
+        k = self.key
         for i in range(6):
-            k = self.ShuffleTheKey(k)
+            k = self.shuffle_the_key(k)
             self.keys.append(k)
 
-    def SwitchTheSwitch(self):
+    def switch_the_switch(self):
         key_ints = [int(self.key[i:i+2], 16) for i in range(0, len(self.key), 2)]
-
         mixed_switch = self.switch[:]
         key_len = len(key_ints)
 
@@ -78,105 +75,100 @@ class CRYP256:
 
     def switch_bytes(self, input_bytes):
         output_bytes = bytearray()
-
         for byte in input_bytes:
             switched_byte = self.switch[byte]
             output_bytes.append(switched_byte[0])
-
         return bytes(output_bytes)
 
     def reverse_switch_bytes(self, input_bytes):
         reverse_switch = {value[0]: index for index, value in enumerate(self.switch)}
-        
         output_bytes = bytearray()
-
         for byte in input_bytes:
             original_byte = reverse_switch[byte]
             output_bytes.append(original_byte)
-
         return bytes(output_bytes)
 
-    def XORGate(self, message):
+    def xor_gate(self, message):
         encrypted_message = bytearray()
         key_length = len(self.key)
-        
         for i in range(len(message)):
             encrypted_byte = message[i] ^ ord(self.key[i % key_length])
             encrypted_message.append(encrypted_byte)
-        
         return encrypted_message
 
-    def EncryptFile(self):
-        r1 = open(self.filename, "rb")
+    def encrypt_file(self):
+        with open(self.filename, "rb") as r1:
+            data = r1.read()
 
         self.key = self.keys[0]
-        enc = self.XORGate(r1.read())
+        enc = self.xor_gate(data)
         enc = self.switch_bytes(enc)
 
         self.key = self.keys[1]
-        enc = self.XORGate(enc)
+        enc = self.xor_gate(enc)
         enc = self.switch_bytes(enc)
 
         self.key = self.keys[2]
-        enc = self.XORGate(enc)
+        enc = self.xor_gate(enc)
         enc = self.switch_bytes(enc)
 
         self.key = self.keys[3]
-        enc = self.XORGate(enc)
+        enc = self.xor_gate(enc)
         enc = self.switch_bytes(enc)
 
         self.key = self.keys[4]
-        enc = self.XORGate(enc)
+        enc = self.xor_gate(enc)
         enc = self.switch_bytes(enc)
 
-        r1.close()
-
-        r2 = open(self.filename, "wb")
-        r2.write(enc)
-        r2.close()
+        with open(self.filename, "wb") as r2:
+            r2.write(enc)
 
         os.rename(self.filename, self.filename + ".CRYP256")
 
-    def DecryptFile(self):
-        r1 = open(self.filename, "rb")
+    def decrypt_file(self):
+        with open(self.filename, "rb") as r1:
+            data = r1.read()
 
         self.key = self.keys[4]
-        enc = self.reverse_switch_bytes(r1.read())
-        enc = self.XORGate(enc)
+        dec = self.reverse_switch_bytes(data)
+        dec = self.xor_gate(dec)
 
         self.key = self.keys[3]
-        enc = self.reverse_switch_bytes(enc)
-        enc = self.XORGate(enc)
+        dec = self.reverse_switch_bytes(dec)
+        dec = self.xor_gate(dec)
 
         self.key = self.keys[2]
-        enc = self.reverse_switch_bytes(enc)
-        enc = self.XORGate(enc)
+        dec = self.reverse_switch_bytes(dec)
+        dec = self.xor_gate(dec)
 
         self.key = self.keys[1]
-        enc = self.reverse_switch_bytes(enc)
-        enc = self.XORGate(enc)
+        dec = self.reverse_switch_bytes(dec)
+        dec = self.xor_gate(dec)
 
         self.key = self.keys[0]
-        enc = self.reverse_switch_bytes(enc)
-        enc = self.XORGate(enc)
+        dec = self.reverse_switch_bytes(dec)
+        dec = self.xor_gate(dec)
 
-        r1.close()
+        with open(self.filename, "wb") as r2:
+            r2.write(dec)
 
-        r2 = open(self.filename, "wb")
-        r2.write(enc)
-        r2.close()
-
-        os.rename(self.filename, self.filename[0:self.filename.find(".CRYP256")])
+        os.rename(self.filename, self.filename.replace(".CRYP256", ""))
 
     def args_start(self):
+        if len(sys.argv) != 3:
+            print("Usage: sudo python3 CRYP256.py <filename/.txt/.png/.jpg> <key/sha256>")
+            print("Example: sudo python3 CRYP256.py cat.png 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8")
+            sys.exit(1)
+
         self.filename = sys.argv[1]
         self.key = sys.argv[2]
-        self.switch = self.SwitchTheSwitch()
-        self.MakeKeys()
+        self.switch = self.switch_the_switch()
+        self.make_keys()
 
         if self.filename.endswith(".CRYP256"):
-            self.DecryptFile()
+            self.decrypt_file()
         else:
-            self.EncryptFile()
+            self.encrypt_file()
 
-CRYP256().args_start()
+if __name__ == "__main__":
+    CRYP256().args_start()
