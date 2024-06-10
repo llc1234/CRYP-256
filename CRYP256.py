@@ -1,11 +1,99 @@
 # CRYP-256
 
-# python main.py secret_file.txt 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+# python main.py secret_file.txt 3f307c4a23b754bc8e6f4a119ca4558e0e06d99287810e175ed870cea26fccd2b1354a4b49303a10
 
 
 import os
 import sys
-import hashlib
+import struct
+
+def left_rotate(n, b):
+    return ((n << b) | (n >> (32 - b))) & 0xffffffff
+
+def sha640(data):
+    h0 = 0x67452301
+    h1 = 0xEFCDAB89
+    h2 = 0x98BADCFE
+    h3 = 0x10325476
+    h4 = 0xC3D2E1F0
+    h5 = 0x76543210
+    h6 = 0xFEDCBA98
+    h7 = 0x89ABCDEF
+    h8 = 0x01234567
+    h9 = 0x3C2D1E0F
+
+    original_byte_len = len(data)
+    original_bit_len = original_byte_len * 8
+
+    data += b'\x80'
+
+    while (len(data) * 8) % 1024 != 896:
+        data += b'\x00'
+
+    data += struct.pack('>Q', original_bit_len)
+
+    for i in range(0, len(data), 128):
+        w = [0] * 160
+        chunk = data[i:i+128]
+        
+        for j in range(16):
+            w[j] = struct.unpack('>I', chunk[j*4:j*4+4])[0]
+        
+        for j in range(16, 160):
+            w[j] = left_rotate(w[j-6] ^ w[j-16] ^ w[j-29] ^ w[j-30], 1)
+        
+        a = h0
+        b = h1
+        c = h2
+        d = h3
+        e = h4
+        f = h5
+        g = h6
+        h = h7
+        i = h8
+        j = h9
+        
+        for k in range(160):
+            if 0 <= k <= 39:
+                func = (b & c) | ((~b) & d)
+                constant = 0x5A827999
+            elif 40 <= k <= 79:
+                func = b ^ c ^ d
+                constant = 0x6ED9EBA1
+            elif 80 <= k <= 119:
+                func = (b & c) | (b & d) | (c & d)
+                constant = 0x8F1BBCDC
+            elif 120 <= k <= 159:
+                func = b ^ c ^ d
+                constant = 0xCA62C1D6
+            
+            temp = (left_rotate(a, 5) + func + e + constant + w[k]) & 0xffffffff
+            e = d
+            d = c
+            c = left_rotate(b, 30)
+            b = a
+            a = temp
+            
+            temp = (left_rotate(f, 5) + func + j + constant + w[k]) & 0xffffffff
+            j = i
+            i = h
+            h = left_rotate(g, 30)
+            g = f
+            f = temp
+        
+        h0 = (h0 + a) & 0xffffffff
+        h1 = (h1 + b) & 0xffffffff
+        h2 = (h2 + c) & 0xffffffff
+        h3 = (h3 + d) & 0xffffffff
+        h4 = (h4 + e) & 0xffffffff
+        h5 = (h5 + f) & 0xffffffff
+        h6 = (h6 + g) & 0xffffffff
+        h7 = (h7 + h) & 0xffffffff
+        h8 = (h8 + i) & 0xffffffff
+        h9 = (h9 + j) & 0xffffffff
+    
+    return '{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}'.format(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9)
+
 
 class CRYP256:
     def __init__(self):
@@ -45,14 +133,11 @@ class CRYP256:
             b'\x40', b'\x41', b'\x42', b'\x43', b'\x44', b'\x45', b'\x46', b'\x47',
             b'\xa0', b'\xa1', b'\xa2', b'\xa3', b'\xa4', b'\xa5', b'\xa6', b'\xa7'
         ]
-    
-    def sha256(self, text):
-        return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
     def make_keys(self):
         k = self.key
         for i in range(5):
-            k = self.sha256(k)
+            k = sha640(k.encode("utf-8"))
             self.keys.append(k)
 
     def switch_the_switch(self):
@@ -149,12 +234,12 @@ class CRYP256:
 
     def args_start(self):
         if len(sys.argv) != 3:
-            print("Usage: sudo python3 CRYP256.py <filename/.txt/.png/.jpg> <key/sha256>")
-            print("Example: sudo python3 CRYP256.py cat.png 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8")
+            print("Usage: sudo python3 CRYP256.py <filename/.txt/.png/.jpg> <key/sha640>")
+            print("Example: sudo python3 CRYP256.py cat.png 3f307c4a23b754bc8e6f4a119ca4558e0e06d99287810e175ed870cea26fccd2b1354a4b49303a10")
             sys.exit(1)
 
         self.filename = sys.argv[1]
-        self.key = sys.argv[2]
+        self.key = sha640(sys.argv[2].encode("utf-8"))
         self.switch = self.switch_the_switch()
         self.make_keys()
 
