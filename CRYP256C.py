@@ -4,7 +4,7 @@ import sys
 
 class CRYP256C:
     def __init__(self):
-        self.filename = "start.txt"
+        self.filename = ""
         self.key = ""
         self.all_keys = []
         self.data_list = []
@@ -73,7 +73,6 @@ class CRYP256C:
         r.close()
 
         for i in range(0, len(data), 64):
-            # print(data[i:i+64])
             self.data_list.append(data[i:i+64])
 
     def XORGate(self, message):
@@ -166,8 +165,6 @@ class CRYP256C:
             k = self.hash128(k)
             self.all_keys.append(k)
 
-        # print(self.all_keys)
-
     def start(self):
         if len(sys.argv) != 3:
             print("Usage: sudo python3 CRYP256C.py <filename/.txt/.png/.jpg> <key/sha640>")
@@ -176,10 +173,6 @@ class CRYP256C:
 
         self.filename = sys.argv[1]
         self.key_generator(self.hash128(sys.argv[2]))
-
-        # print("filename:   ", self.filename)
-        # print("key     :   ", self.key)
-
         self.en_of_de()
 
 
